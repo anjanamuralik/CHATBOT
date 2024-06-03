@@ -1,7 +1,5 @@
-
 from langchain_community.vectorstores import Qdrant
 from langchain_community.embeddings import HuggingFaceBgeEmbeddings
-from qdrant_client import QdrantClient
 from langchain_community.document_loaders import PyPDFLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 import os
@@ -42,16 +40,7 @@ print("Embeddings Model Loaded...........")
 
 # Define the Qdrant configuration
 url = "http://localhost:6333"
-collection_name = "gpt_db"
-
-# Initialize Qdrant client
-client = QdrantClient(
-    url=url,
-    prefer_grpc=False
-)
-
-print(client)
-print("######################")
+collection_name = "test"
 
 # Create the Qdrant index from the text chunks
 qdrant = Qdrant.from_documents(
@@ -64,10 +53,5 @@ qdrant = Qdrant.from_documents(
 
 print("Qdrant Index Created ..............")
 
-# Use the created Qdrant index to query
-query = "Which two statements are true about the BIG_TBS tablespace?"
-docs = qdrant.similarity_search_with_score(query=query, k=1)
+# Now the Qdrant index includes the embeddings for all the PDFs in the specified directory
 
-for i in docs:
-    doc, score = i
-    print({"score": score, "content": doc.page_content, "metadata": doc.metadata})
