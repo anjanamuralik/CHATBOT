@@ -1,0 +1,72 @@
+from langchain_community.vectorstores import Qdrant
+from langchain_community.embeddings import HuggingFaceBgeEmbeddings
+from qdrant_client import QdrantClient
+from langchain_community.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+import os
+
+# Define the directory containing the PDFs
+pdf_directory_path = "C:/Users/AnjanaMurali/Desktop/qdrant/"
+
+# Initialize an empty list to hold all documents
+all_documents = []
+
+# Iterate over all files in the directory
+for filename in os.listdir(pdf_directory_path):
+    if filename.endswith(".pdf"):
+        pdf_file_path = os.path.join(pdf_directory_path, filename)
+        loader = PyPDFLoader(pdf_file_path)
+        documents = loader.load()
+        all_documents.extend(documents)
+
+# Split the text into chunks
+text_splitter = RecursiveCharacterTextSplitter(
+    chunk_size=500,
+    chunk_overlap=50
+)
+text_chunks = text_splitter.split_documents(all_documents)
+
+# Define the embedding model
+model_name = "BAAI/bge-large-en"
+model_kwargs = {'device': 'cpu'}
+encode_kwargs = {'normalize_embeddings': False}
+
+embeddings = HuggingFaceBgeEmbeddings(
+    model_name=model_name,
+    model_kwargs=model_kwargs,
+    encode_kwargs=encode_kwargs
+)
+
+print("Embeddings Model Loaded...........")
+
+# Define the Qdrant configuration
+url = "http://localhost:6333"
+collection_name = "gpt_db"
+
+# Initialize Qdrant client
+client = QdrantClient(
+    url=url,
+    prefer_grpc=False
+)
+
+print(client)
+print("######################")
+
+# Create the Qdrant index from the text chunks
+qdrant = Qdrant.from_documents(
+    text_chunks,
+    embeddings,
+    url=url,
+    prefer_grpc=False,
+    collection_name=collection_name
+)
+
+print("Qdrant Index Created ..............")
+
+# Use the created Qdrant index to query
+query = "Which two statements are true about the BIG_TBS tablespace?"
+docs = qdrant.similarity_search_with_score(query=query, k=1)
+
+for i in docs:
+    doc, score = i
+    print({"score": score, "content": doc.page_content, "metadata": doc.metadata})
